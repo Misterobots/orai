@@ -8,164 +8,115 @@ killall screen
 
 # make four orai directories
 mkdir $HOME/.oraid
-mkdir $HOME/.oraid/validator1
-mkdir $HOME/.oraid/validator2
-mkdir $HOME/.oraid/validator3
+end_value=${end_value:-3}
+for i in $(seq 1 "$end_value")
+do
+    mkdir $HOME/.oraid/validator$i
 
-# init all three validators
-oraid init --chain-id=testing validator1 --home=$HOME/.oraid/validator1
-oraid init --chain-id=testing validator2 --home=$HOME/.oraid/validator2
-oraid init --chain-id=testing validator3 --home=$HOME/.oraid/validator3
+    # init all three validators
+    oraid init --chain-id=testing validator$i --home=$HOME/.oraid/validator$i
 
-# create keys for all three validators
-oraid keys add validator1 --keyring-backend=test --home=$HOME/.oraid/validator1
-oraid keys add validator2 --keyring-backend=test --home=$HOME/.oraid/validator2
-oraid keys add validator3 --keyring-backend=test --home=$HOME/.oraid/validator3
+    # create keys for all three validators
+    oraid keys add validator$i --keyring-backend=test --home=$HOME/.oraid/validator$i
 
-update_genesis () {    
-    cat $HOME/.oraid/validator1/config/genesis.json | jq "$1" > $HOME/.oraid/validator1/config/tmp_genesis.json && mv $HOME/.oraid/validator1/config/tmp_genesis.json $HOME/.oraid/validator1/config/genesis.json
-}
+    update_genesis () {    
+        cat $HOME/.oraid/validator1/config/genesis.json | jq "$1" > $HOME/.oraid/validator1/config/tmp_genesis.json && mv $HOME/.oraid/validator1/config/tmp_genesis.json $HOME/.oraid/validator1/config/genesis.json
+    }
 
-# change staking denom to orai
-update_genesis '.app_state["staking"]["params"]["bond_denom"]="orai"'
+    # change staking denom to orai
+    update_genesis '.app_state["staking"]["params"]["bond_denom"]="orai"'
 
-# create validator node 1
-oraid add-genesis-account $(oraid keys show validator1 -a --keyring-backend=test --home=$HOME/.oraid/validator1) 1000000000000orai,1000000000000stake --home=$HOME/.oraid/validator1
-oraid gentx validator1 500000000orai --keyring-backend=test --home=$HOME/.oraid/validator1 --chain-id=testing
-oraid collect-gentxs --home=$HOME/.oraid/validator1
-oraid validate-genesis --home=$HOME/.oraid/validator1
+    # create validator node 1
+    if [ "$i" -eq "1" ]; then
+        oraid add-genesis-account $(oraid keys show validator$i -a --keyring-backend=test --home=$HOME/.oraid/validator$i) 1000000000000orai,1000000000000stake --home=$HOME/.oraid/validator$i
+        oraid gentx validator$i 500000000orai --keyring-backend=test --home=$HOME/.oraid/validator$i --chain-id=testing
+        oraid collect-gentxs --home=$HOME/.oraid/validator$i
+        oraid validate-genesis --home=$HOME/.oraid/validator$i
+    fi
 
-# update staking genesis
-update_genesis '.app_state["staking"]["params"]["unbonding_time"]="240s"'
-# update crisis variable to orai
-update_genesis '.app_state["crisis"]["constant_fee"]["denom"]="orai"'
-# udpate gov genesis
-update_genesis '.app_state["gov"]["deposit_params"]["min_deposit"][0]["denom"]="orai"'
-# update mint genesis
-update_genesis '.app_state["mint"]["params"]["mint_denom"]="orai"'
-update_genesis '.app_state["gov"]["voting_params"]["voting_period"]="30s"'
-# port key (validator1 uses default ports)
-# validator1 1317, 9090, 9091, 26658, 26657, 26656, 6060
-# validator2 1316, 9088, 9089, 26655, 26654, 26653, 6061
-# validator3 1315, 9086, 9087, 26652, 26651, 26650, 6062
+    # update staking genesis
+    update_genesis '.app_state["staking"]["params"]["unbonding_time"]="240s"'
+    # update crisis variable to orai
+    update_genesis '.app_state["crisis"]["constant_fee"]["denom"]="orai"'
+    # udpate gov genesis
+    update_genesis '.app_state["gov"]["deposit_params"]["min_deposit"][0]["denom"]="orai"'
+    # update mint genesis
+    update_genesis '.app_state["mint"]["params"]["mint_denom"]="orai"'
+    update_genesis '.app_state["gov"]["voting_params"]["voting_period"]="30s"'
+    # port key (validator1 uses default ports)
+    # validator1 1317, 9090, 9091, 26658, 26657, 26656, 6060
+    # validator2 1316, 9088, 9089, 26655, 26654, 26653, 6061
+    # validator3 1315, 9086, 9087, 26652, 26651, 26650, 6062
 
 
-# change app.toml values
-VALIDATOR1_APP_TOML=$HOME/.oraid/validator1/config/app.toml
-VALIDATOR2_APP_TOML=$HOME/.oraid/validator2/config/app.toml
-VALIDATOR3_APP_TOML=$HOME/.oraid/validator3/config/app.toml
+    # change app.toml values
+    VALIDATOR_APP_TOML=$HOME/.oraid/validator$i/config/app.toml
 
-# change config.toml values
-VALIDATOR1_CONFIG=$HOME/.oraid/validator1/config/config.toml
-VALIDATOR2_CONFIG=$HOME/.oraid/validator2/config/config.toml
-VALIDATOR3_CONFIG=$HOME/.oraid/validator3/config/config.toml
+    # change config.toml values
+    VALIDATOR_CONFIG=$HOME/.oraid/validator$i/config/config.toml
 
-# validator2
-sed -i -E 's|tcp://0.0.0.0:1317|tcp://0.0.0.0:1316|g' $VALIDATOR2_APP_TOML
-sed -i -E 's|0.0.0.0:9090|0.0.0.0:9088|g' $VALIDATOR2_APP_TOML
-sed -i -E 's|0.0.0.0:9091|0.0.0.0:9089|g' $VALIDATOR2_APP_TOML
+    sed -i -E 's|tcp://0.0.0.0:1317|tcp://0.0.0.0:131'$i'|g' $VALIDATOR_APP_TOML
+    sed -i -E 's|0.0.0.0:9090|0.0.0.0:809'$i'|g' $VALIDATOR_APP_TOML
+    sed -i -E 's|0.0.0.0:9091|0.0.0.0:709'$i'|g' $VALIDATOR_APP_TOML
 
-# validator3
-sed -i -E 's|tcp://0.0.0.0:1317|tcp://0.0.0.0:1315|g' $VALIDATOR3_APP_TOML
-sed -i -E 's|0.0.0.0:9090|0.0.0.0:9086|g' $VALIDATOR3_APP_TOML
-sed -i -E 's|0.0.0.0:9091|0.0.0.0:9087|g' $VALIDATOR3_APP_TOML
+    # Pruning - comment this configuration if you want to run upgrade script
+    pruning="custom"
+    pruning_keep_recent="5"
+    pruning_keep_every="10"
+    pruning_interval="10000"
 
-# Pruning - comment this configuration if you want to run upgrade script
-pruning="custom"
-pruning_keep_recent="5"
-pruning_keep_every="10"
-pruning_interval="10000"
+    sed -i -e "s%^pruning *=.*%pruning = \"$pruning\"%; " $VALIDATOR_APP_TOML
+    sed -i -e "s%^pruning-keep-recent *=.*%pruning-keep-recent = \"$pruning_keep_recent\"%; " $VALIDATOR_APP_TOML
+    sed -i -e "s%^pruning-keep-every *=.*%pruning-keep-every = \"$pruning_keep_every\"%; " $VALIDATOR_APP_TOML
+    sed -i -e "s%^pruning-interval *=.*%pruning-interval = \"$pruning_interval\"%; " $VALIDATOR_APP_TOML
 
-sed -i -e "s%^pruning *=.*%pruning = \"$pruning\"%; " $VALIDATOR1_APP_TOML
-sed -i -e "s%^pruning-keep-recent *=.*%pruning-keep-recent = \"$pruning_keep_recent\"%; " $VALIDATOR1_APP_TOML
-sed -i -e "s%^pruning-keep-every *=.*%pruning-keep-every = \"$pruning_keep_every\"%; " $VALIDATOR1_APP_TOML
-sed -i -e "s%^pruning-interval *=.*%pruning-interval = \"$pruning_interval\"%; " $VALIDATOR1_APP_TOML
+    # state sync  - comment this configuration if you want to run upgrade script
+    snapshot_interval="10"
+    snapshot_keep_recent="2"
 
-sed -i -e "s%^pruning *=.*%pruning = \"$pruning\"%; " $VALIDATOR2_APP_TOML
-sed -i -e "s%^pruning-keep-recent *=.*%pruning-keep-recent = \"$pruning_keep_recent\"%; " $VALIDATOR2_APP_TOML
-sed -i -e "s%^pruning-keep-every *=.*%pruning-keep-every = \"$pruning_keep_every\"%; " $VALIDATOR2_APP_TOML
-sed -i -e "s%^pruning-interval *=.*%pruning-interval = \"$pruning_interval\"%; " $VALIDATOR2_APP_TOML
+    sed -i -e "s%^snapshot-interval *=.*%snapshot-interval = \"$snapshot_interval\"%; " $VALIDATOR_APP_TOML
+    sed -i -e "s%^snapshot-keep-recent *=.*%snapshot-keep-recent = \"$snapshot_keep_recent\"%; " $VALIDATOR_APP_TOML
 
-sed -i -e "s%^pruning *=.*%pruning = \"$pruning\"%; " $VALIDATOR3_APP_TOML
-sed -i -e "s%^pruning-keep-recent *=.*%pruning-keep-recent = \"$pruning_keep_recent\"%; " $VALIDATOR3_APP_TOML
-sed -i -e "s%^pruning-keep-every *=.*%pruning-keep-every = \"$pruning_keep_every\"%; " $VALIDATOR3_APP_TOML
-sed -i -e "s%^pruning-interval *=.*%pruning-interval = \"$pruning_interval\"%; " $VALIDATOR3_APP_TOML
+    sed -i -E 's|allow_duplicate_ip = false|allow_duplicate_ip = true|g' $VALIDATOR_CONFIG
 
-# state sync  - comment this configuration if you want to run upgrade script
-snapshot_interval="10"
-snapshot_keep_recent="2"
+    # validator2
+    sed -i -E 's|tcp://127.0.0.1:26658|tcp://0.0.0.0:2765'$i'|g' $VALIDATOR_CONFIG
+    sed -i -E 's|tcp://127.0.0.1:26657|tcp://0.0.0.0:2665'$i'|g' $VALIDATOR_CONFIG
+    sed -i -E 's|tcp://0.0.0.0:26656|tcp://0.0.0.0:2565'$i'|g' $VALIDATOR_CONFIG
+    sed -i -E 's|allow_duplicate_ip = false|allow_duplicate_ip = true|g' $VALIDATOR_CONFIG
 
-sed -i -e "s%^snapshot-interval *=.*%snapshot-interval = \"$snapshot_interval\"%; " $VALIDATOR1_APP_TOML
-sed -i -e "s%^snapshot-keep-recent *=.*%snapshot-keep-recent = \"$snapshot_keep_recent\"%; " $VALIDATOR1_APP_TOML
+    if [ "$i" -ne "1" ]; then
+        cp $HOME/.oraid/validator1/config/genesis.json $HOME/.oraid/validator$i/config/genesis.json
+        # copy tendermint node id of validator1 to persistent peers of validator2-3
+        sed -i -E "s|persistent_peers = \"\"|persistent_peers = \"$(oraid tendermint show-node-id --home=$HOME/.oraid/validator1)@localhost:25651\"|g" $VALIDATOR_CONFIG
+        prev_i=$((i - 1))
+        sed -i -E "s|persistent_peers = \"\"|persistent_peers = \"$(oraid tendermint show-node-id --home=$HOME/.oraid/validator1)@localhost:2565$prev_i\"|g" $VALIDATOR_CONFIG
+    fi
+done
 
-sed -i -e "s%^snapshot-interval *=.*%snapshot-interval = \"$snapshot_interval\"%; " $VALIDATOR2_APP_TOML
-sed -i -e "s%^snapshot-keep-recent *=.*%snapshot-keep-recent = \"$snapshot_keep_recent\"%; " $VALIDATOR2_APP_TOML
-
-sed -i -e "s%^snapshot-interval *=.*%snapshot-interval = \"$snapshot_interval\"%; " $VALIDATOR3_APP_TOML
-sed -i -e "s%^snapshot-keep-recent *=.*%snapshot-keep-recent = \"$snapshot_keep_recent\"%; " $VALIDATOR3_APP_TOML
-
-# validator1
-sed -i -E 's|allow_duplicate_ip = false|allow_duplicate_ip = true|g' $VALIDATOR1_CONFIG
-
-# validator2
-sed -i -E 's|tcp://127.0.0.1:26658|tcp://0.0.0.0:26655|g' $VALIDATOR2_CONFIG
-sed -i -E 's|tcp://127.0.0.1:26657|tcp://0.0.0.0:26654|g' $VALIDATOR2_CONFIG
-sed -i -E 's|tcp://0.0.0.0:26656|tcp://0.0.0.0:26653|g' $VALIDATOR2_CONFIG
-sed -i -E 's|allow_duplicate_ip = false|allow_duplicate_ip = true|g' $VALIDATOR2_CONFIG
-
-# validator3
-sed -i -E 's|tcp://127.0.0.1:26658|tcp://0.0.0.0:26652|g' $VALIDATOR3_CONFIG
-sed -i -E 's|tcp://127.0.0.1:26657|tcp://0.0.0.0:26651|g' $VALIDATOR3_CONFIG
-sed -i -E 's|tcp://0.0.0.0:26656|tcp://0.0.0.0:26650|g' $VALIDATOR3_CONFIG
-sed -i -E 's|allow_duplicate_ip = false|allow_duplicate_ip = true|g' $VALIDATOR3_CONFIG
-
-# copy validator1 genesis file to validator2-3
-cp $HOME/.oraid/validator1/config/genesis.json $HOME/.oraid/validator2/config/genesis.json
-cp $HOME/.oraid/validator1/config/genesis.json $HOME/.oraid/validator3/config/genesis.json
-
-# copy tendermint node id of validator1 to persistent peers of validator2-3
-sed -i -E "s|persistent_peers = \"\"|persistent_peers = \"$(oraid tendermint show-node-id --home=$HOME/.oraid/validator1)@localhost:26656\"|g" $VALIDATOR2_CONFIG
-sed -i -E "s|persistent_peers = \"\"|persistent_peers = \"$(oraid tendermint show-node-id --home=$HOME/.oraid/validator1)@localhost:26656\"|g" $VALIDATOR3_CONFIG
-
-# start all three validators
-screen -S validator1 -d -m oraid start --home=$HOME/.oraid/validator1 --minimum-gas-prices=0.00001orai
-screen -S validator2 -d -m oraid start --home=$HOME/.oraid/validator2 --minimum-gas-prices=0.00001orai
-screen -S validator3 -d -m oraid start --home=$HOME/.oraid/validator3 --minimum-gas-prices=0.00001orai
+for i in $(seq 1 "$end_value")
+do
+    # start all validators
+    screen -S validator$i -d -m oraid start --home=$HOME/.oraid/validator$i --minimum-gas-prices=0.00001orai
+done
 
 # send orai from first validator to second validator
-echo "Waiting 7 seconds to send funds to validators 2 and 3..."
-sleep 7
+echo "Waiting 10 seconds to send funds to validators"
+sleep 10
 
-oraid tx send $(oraid keys show validator1 -a --keyring-backend=test --home=$HOME/.oraid/validator1) $(oraid keys show validator2 -a --keyring-backend=test --home=$HOME/.oraid/validator2) 5000000000orai --keyring-backend=test --home=$HOME/.oraid/validator1 --chain-id=testing --broadcast-mode block --gas 200000 --fees 2orai --node http://localhost:26657 --yes
-oraid tx send $(oraid keys show validator1 -a --keyring-backend=test --home=$HOME/.oraid/validator1) $(oraid keys show validator3 -a --keyring-backend=test --home=$HOME/.oraid/validator3) 4000000000orai --keyring-backend=test --home=$HOME/.oraid/validator1 --chain-id=testing --broadcast-mode block --gas 200000 --fees 2orai --node http://localhost:26657 --yes
-# send test orai to a test account
-oraid tx send $(oraid keys show validator1 -a --keyring-backend=test --home=$HOME/.oraid/validator1) orai14n3tx8s5ftzhlxvq0w5962v60vd82h30rha573 5000000000orai --keyring-backend=test --home=$HOME/.oraid/validator1 --chain-id=testing --broadcast-mode block --gas 200000 --fees 2orai --node http://localhost:26657 --yes
+for i in $(seq 1 "$end_value")
+do
+    oraid tx send $(oraid keys show validator1 -a --keyring-backend=test --home=$HOME/.oraid/validator1) $(oraid keys show validator$i -a --keyring-backend=test --home=$HOME/.oraid/validator$i) 5000000000orai --keyring-backend=test --home=$HOME/.oraid/validator1 --chain-id=testing --broadcast-mode block --gas 200000 --fees 2orai --node http://localhost:26651 --yes
 
-# create second & third validator
-oraid tx staking create-validator --amount=500000000orai --from=validator2 --pubkey=$(oraid tendermint show-validator --home=$HOME/.oraid/validator2) --moniker="validator2" --chain-id="testing" --commission-rate="0.1" --commission-max-rate="0.2" --commission-max-change-rate="0.05" --min-self-delegation="500000000" --keyring-backend=test --home=$HOME/.oraid/validator2 --broadcast-mode block --gas 200000 --fees 2orai --node http://localhost:26657 --yes
-oraid tx staking create-validator --amount=400000000orai --from=validator3 --pubkey=$(oraid tendermint show-validator --home=$HOME/.oraid/validator3) --moniker="validator3" --chain-id="testing" --commission-rate="0.1" --commission-max-rate="0.2" --commission-max-change-rate="0.05" --min-self-delegation="400000000" --keyring-backend=test --home=$HOME/.oraid/validator3 --broadcast-mode block --gas 200000 --fees 2orai --node http://localhost:26657 --yes
+    if [ "$i" -ne "1" ]; then
+        oraid tx staking create-validator --amount=500000000orai --from=validator$i --pubkey=$(oraid tendermint show-validator --home=$HOME/.oraid/validator$i) --moniker="validator$i" --chain-id="testing" --commission-rate="0.1" --commission-max-rate="0.2" --commission-max-change-rate="0.05" --min-self-delegation="500000000" --keyring-backend=test --home=$HOME/.oraid/validator$i --broadcast-mode block --gas 200000 --fees 2orai --node http://localhost:26651 --yes
+    fi
+done
 
-echo "All 3 Validators are up and running!"
+total_validators=$(oraid query staking validators --home ~/.oraid/validator1 --node http://localhost:26651 --output json | jq '.validators | length')
 
-# echo "-----------------------"
-# echo "## Add new CosmWasm contract"
-# RESP=$(oraid tx wasm store scripts/wasm_file/cw_nameservice-aarch64.wasm \
-# --from=validator1 --keyring-backend=test --home=$HOME/.oraid/validator1 --gas 1500000 --fees 150orai --chain-id="testing" -y --node=http://localhost:26657 -b block -o json)
-
-# # first contract with code id = 1
-# CODE_ID=$(echo "$RESP" | jq -r '.logs[0].events[1].attributes[-1].value')
-# CODE_HASH=$(echo "$RESP" | jq -r '.logs[0].events[1].attributes[-2].value')
-# echo "* Code id: $CODE_ID"
-# echo "* Code checksum: $CODE_HASH"
-
-# echo "-----------------------"
-# echo "## Migrate contract"
-# echo "### Upload new code"
-# RESP=$(oraid tx wasm store scripts/wasm_file/burner.wasm \
-#   --from=validator1 --keyring-backend=test --home=$HOME/.oraid/validator1 --node=http://localhost:26657 --gas 1500000 --fees 150orai --chain-id="testing" -y -b block -o json)
-
-# # second contract with code id = 2
-# CODE_ID=$(echo "$RESP" | jq -r '.logs[0].events[1].attributes[-1].value')
-# CODE_HASH=$(echo "$RESP" | jq -r '.logs[0].events[1].attributes[-2].value')
-# echo "* Code id: $CODE_ID"
-# echo "* Code checksum: $CODE_HASH"
+if [ "$total_validators" -eq "$end_value" ]; then
+    echo "All Validators are up and running!"
+else
+    echo "Error setting up multi-node local testnet with $end_value validators"
+fi
