@@ -106,6 +106,7 @@ sed -i -e "s%^snapshot-keep-recent *=.*%snapshot-keep-recent = \"$snapshot_keep_
 
 # validator1
 sed -i -E 's|allow_duplicate_ip = false|allow_duplicate_ip = true|g' $VALIDATOR1_CONFIG
+sed -i -e 's/cors_allowed_origins = \[\]/cors_allowed_origins=["*"]/g' $VALIDATOR1_CONFIG
 
 # validator2
 sed -i -E 's|tcp://127.0.0.1:26658|tcp://0.0.0.0:26655|g' $VALIDATOR2_CONFIG
